@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuração do Gemini (Você vai precisar da sua API KEY do Google AI Studio)
-genai.configure(api_key="SUA_API_KEY_AQUI")
+genai.configure(api_key="AIzaSyAL2UtV6xpFfwm4Je6gs07MLkyPt_g1pLc")
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 app = FastAPI()
