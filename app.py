@@ -2,13 +2,12 @@ import os
 import google.generativeai as genai
 from fastapi import FastAPI, Request
 
-# Pega a chave do Render
+# Configuração da API
 api_key = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
 
-# Usaremos apenas o nome do modelo, sem o prefixo 'models/' 
-# O Gemini Pro é o mais compatível com todas as chaves
-model = genai.GenerativeModel('gemini-pro')
+# O segredo está aqui: usamos o modelo 1.5-flash que é o mais rápido e estável
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 app = FastAPI()
 
@@ -20,24 +19,24 @@ estoques = {
 
 @app.get("/")
 def home():
-    return {"status": "Farmacia Online Ativa"}
+    return {"status": "Sistema Online", "local": "Esteio"}
 
 @app.post("/whatsapp")
 async def webhook(request: Request):
     try:
         dados = await request.json()
-        pergunta = dados.get("message", "Olá")
+        pergunta = dados.get("message", "")
         
-        # Filtro básico de estoque
-        resumo = ""
+        # Busca no estoque
+        info_estoque = ""
         for loja, itens in estoques.items():
             for produto, qtd in itens.items():
                 if produto in pergunta.lower():
-                    resumo += f"{loja}: {qtd} unidades. "
+                    info_estoque += f"{loja}: {qtd} unidades. "
 
-        prompt = f"Atenda o cliente de forma curta. Pergunta: {pergunta}. Estoque: {resumo}"
+        prompt = f"Você é o atendente da farmácia do Rodrigo. Responda de forma curta: {pergunta}. Estoque: {info_estoque}"
         
-        # Aqui está o segredo: vamos forçar a geração simples
+        # Chamada da IA
         response = model.generate_content(prompt)
         return {"reply": response.text}
         
