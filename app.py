@@ -1,12 +1,11 @@
 import os
 import google.generativeai as genai
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
+from twilio.twiml.messaging_response import MessagingResponse
 
 # Configuração da API
 api_key = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
-
-# O segredo está aqui: usamos o modelo 1.5-flash que é o mais rápido e estável
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 app = FastAPI()
@@ -24,21 +23,31 @@ def home():
 @app.post("/whatsapp")
 async def webhook(request: Request):
     try:
-        dados = await request.json()
-        pergunta = dados.get("message", "")
+        # 1. O Twilio envia os dados como formulário, pegamos o campo 'Body'
+        dados = await request.form()
+        pergunta = dados.get("Body", "")
         
-        # Busca no estoque
+        # 2. Busca no estoque
         info_estoque = ""
         for loja, itens in estoques.items():
             for produto, qtd in itens.items():
                 if produto in pergunta.lower():
-                    info_estoque += f"{loja}: {qtd} unidades. "
+                    status = f"{qtd} unidades" if qtd > 0 else "Esgotado"
+                    info_estoque += f"{loja}: {status}. "
 
-        prompt = f"Você é o atendente da farmácia do Rodrigo. Responda de forma curta: {pergunta}. Estoque: {info_estoque}"
-        
-        # Chamada da IA
+        # 3. Gerar resposta com Gemini
+        prompt = f"Você é o atendente da farmácia. Seja curto e educado. Pergunta: {pergunta}. Estoque atual: {info_estoque}"
         response = model.generate_content(prompt)
-        return {"reply": response.text}
+        texto_ia = response.text
+
+        # 4. Formata para o WhatsApp (TwiML)
+        twiml = MessagingResponse()
+        twiml.message(texto_ia)
+        
+        return Response(content=str(twiml), media_type="application/xml")
         
     except Exception as e:
-        return {"error": str(e)}
+        # Em caso de erro, responde em texto simples para o Twilio não travar
+        twiml = MessagingResponse()
+        twiml.message(f"Ops, tive um probleminha técnico. Tente de novo!")
+        return Response(content=str(twiml), media_type="application/xml")
