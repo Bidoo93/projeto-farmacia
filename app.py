@@ -3,10 +3,17 @@ import google.generativeai as genai
 from fastapi import FastAPI, Request, Response
 from twilio.twiml.messaging_response import MessagingResponse
 
-# Configuração da API
+import os
+import google.generativeai as genai
+from fastapi import FastAPI, Request, Response
+from twilio.twiml.messaging_response import MessagingResponse
+
+# CONFIGURAÇÃO FORÇADA
 api_key = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-1.5-flash')
+
+# Trocamos para 'gemini-pro' que é o "tanque de guerra" das APIs
+model = genai.GenerativeModel('gemini-pro')
 
 app = FastAPI()
 
@@ -47,7 +54,7 @@ async def webhook(request: Request):
         return Response(content=str(twiml), media_type="application/xml")
         
     except Exception as e:
-        # Isso vai te mandar o erro real no WhatsApp para a gente matar a charada
+        # Esse código vai te mandar o erro REAL no WhatsApp
         twiml = MessagingResponse()
-        twiml.message(f"Erro técnico: {str(e)}") 
+        twiml.message(f"ERRO IDENTIFICADO: {str(e)}") 
         return Response(content=str(twiml), media_type="application/xml")
