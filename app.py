@@ -4,8 +4,11 @@ from fastapi import FastAPI, Request, Response
 from twilio.twiml.messaging_response import MessagingResponse
 
 # Configuração da API - Usando o método mais moderno
+# Configuração da API
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
+
+# Trocamos para 'gemini-pro', ele é o mais estável e evita o erro 404
+model = genai.GenerativeModel('gemini-pro')
 
 app = FastAPI()
 
