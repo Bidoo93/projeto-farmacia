@@ -3,7 +3,8 @@ from google import genai
 from fastapi import FastAPI, Request, Response
 from twilio.twiml.messaging_response import MessagingResponse
 
-# O cliente pega a chave automaticamente da variável GEMINI_API_KEY do Render
+# O cliente da nova biblioteca 2026
+# Ele já busca o GEMINI_API_KEY sozinho do ambiente do Render
 client = genai.Client()
 
 app = FastAPI()
@@ -16,7 +17,7 @@ estoques = {
 
 @app.get("/")
 def home():
-    return {"status": "Sistema Online 2026"}
+    return {"status": "Sistema Farmácia 2026 Online"}
 
 @app.post("/whatsapp")
 async def webhook(request: Request):
@@ -32,7 +33,7 @@ async def webhook(request: Request):
 
         prompt = f"Você é atendente da farmácia. Responda curto: {pergunta}. Estoque: {info_estoque}"
         
-        # NOVO COMANDO DA BIBLIOTECA 2026
+        # COMANDO OFICIAL GEMINI 3 FLASH
         response = client.models.generate_content(
             model="gemini-3-flash-preview", 
             contents=prompt
@@ -44,5 +45,5 @@ async def webhook(request: Request):
         
     except Exception as e:
         twiml = MessagingResponse()
-        twiml.message(f"Erro na nova API: {str(e)}")
+        twiml.message(f"Erro na API 2026: {str(e)}")
         return Response(content=str(twiml), media_type="application/xml")
