@@ -3,17 +3,12 @@ import google.generativeai as genai
 from fastapi import FastAPI, Request, Response
 from twilio.twiml.messaging_response import MessagingResponse
 
-import os
-import google.generativeai as genai
-from fastapi import FastAPI, Request, Response
-from twilio.twiml.messaging_response import MessagingResponse
-
-# CONFIGURAÇÃO FORÇADA
+# Configuração da API
 api_key = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
 
-# Trocamos para 'gemini-pro' que é o "tanque de guerra" das APIs
-model = genai.GenerativeModel('gemini-pro')
+# Usamos o modelo 1.5-flash com o nome completo para não ter erro
+model = genai.GenerativeModel('models/gemini-1.5-flash')
 
 app = FastAPI()
 
@@ -30,31 +25,29 @@ def home():
 @app.post("/whatsapp")
 async def webhook(request: Request):
     try:
-        # 1. O Twilio envia os dados como formulário, pegamos o campo 'Body'
-        dados = await request.form()
-        pergunta = dados.get("Body", "")
+        # Twilio envia como formulário
+        form_data = await request.form()
+        pergunta = form_data.get("Body", "")
         
-        # 2. Busca no estoque
+        # Busca no estoque
         info_estoque = ""
         for loja, itens in estoques.items():
             for produto, qtd in itens.items():
                 if produto in pergunta.lower():
-                    status = f"{qtd} unidades" if qtd > 0 else "Esgotado"
-                    info_estoque += f"{loja}: {status}. "
+                    info_estoque += f"{loja}: {qtd} unidades. "
 
-        # 3. Gerar resposta com Gemini
-        prompt = f"Você é o atendente da farmácia. Seja curto e educado. Pergunta: {pergunta}. Estoque atual: {info_estoque}"
+        prompt = f"Você é o atendente da farmácia do Rodrigo. Responda de forma curta: {pergunta}. Estoque: {info_estoque}"
+        
+        # Chamada da IA
         response = model.generate_content(prompt)
         texto_ia = response.text
 
-        # 4. Formata para o WhatsApp (TwiML)
+        # Resposta para o WhatsApp
         twiml = MessagingResponse()
         twiml.message(texto_ia)
-        
         return Response(content=str(twiml), media_type="application/xml")
         
     except Exception as e:
-        # Esse código vai te mandar o erro REAL no WhatsApp
         twiml = MessagingResponse()
-        twiml.message(f"ERRO IDENTIFICADO: {str(e)}") 
+        twiml.message(f"Erro: {str(e)}")
         return Response(content=str(twiml), media_type="application/xml")
