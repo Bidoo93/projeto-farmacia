@@ -47,7 +47,7 @@ async def webhook(request: Request):
         return Response(content=str(twiml), media_type="application/xml")
         
     except Exception as e:
-        # Em caso de erro, responde em texto simples para o Twilio não travar
+        # Isso vai te mandar o erro real no WhatsApp para a gente matar a charada
         twiml = MessagingResponse()
-        twiml.message(f"Ops, tive um probleminha técnico. Tente de novo!")
+        twiml.message(f"Erro técnico: {str(e)}") 
         return Response(content=str(twiml), media_type="application/xml")
