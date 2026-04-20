@@ -1,15 +1,11 @@
 import os
-import google.generativeai as genai
+from google import genai
 from fastapi import FastAPI, Request, Response
 from twilio.twiml.messaging_response import MessagingResponse
 
-# Configuração da API
-api_key = os.environ.get("GEMINI_API_KEY")
-genai.configure(api_key=api_key)
+# O cliente pega a chave automaticamente da variável GEMINI_API_KEY do Render
+client = genai.Client()
 
-# MUDANÇA AQUI: Forçamos o modelo raiz que funciona em versões antigas
-model_name = 'models/gemini-1.0-pro-001'
-model = genai.GenerativeModel(model_name)
 app = FastAPI()
 
 estoques = {
@@ -20,7 +16,7 @@ estoques = {
 
 @app.get("/")
 def home():
-    return {"status": "Online", "modelo_usado": model_name}
+    return {"status": "Sistema Online 2026"}
 
 @app.post("/whatsapp")
 async def webhook(request: Request):
@@ -35,7 +31,12 @@ async def webhook(request: Request):
                     info_estoque += f"{loja}: {qtd} unidades. "
 
         prompt = f"Você é atendente da farmácia. Responda curto: {pergunta}. Estoque: {info_estoque}"
-        response = model.generate_content(prompt)
+        
+        # NOVO COMANDO DA BIBLIOTECA 2026
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview", 
+            contents=prompt
+        )
         
         twiml = MessagingResponse()
         twiml.message(response.text)
@@ -43,5 +44,5 @@ async def webhook(request: Request):
         
     except Exception as e:
         twiml = MessagingResponse()
-        twiml.message(f"DEBUG: Modelo {model_name} - Erro: {str(e)}")
+        twiml.message(f"Erro na nova API: {str(e)}")
         return Response(content=str(twiml), media_type="application/xml")
