@@ -3,12 +3,22 @@ import google.generativeai as genai
 from fastapi import FastAPI, Request, Response
 from twilio.twiml.messaging_response import MessagingResponse
 
-# Configuração da API - Usando o método mais moderno
 # Configuração da API
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+api_key = os.environ.get("GEMINI_API_KEY")
+genai.configure(api_key=api_key)
 
-# Trocamos para 'gemini-pro', ele é o mais estável e evita o erro 404
-model = genai.GenerativeModel('gemini-pro')
+# FUNÇÃO PARA ACHAR O MODELO CERTO AUTOMATICAMENTE
+def get_available_model():
+    try:
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                return m.name
+    except:
+        return 'gemini-1.5-flash' # fallback caso a lista falhe
+
+# Seleciona o modelo que o seu sistema permitir
+model_name = get_available_model()
+model = genai.GenerativeModel(model_name)
 
 app = FastAPI()
 
@@ -20,32 +30,28 @@ estoques = {
 
 @app.get("/")
 def home():
-    return {"status": "Online", "msg": "Bora descansar Rodrigo!"}
+    return {"status": "Online", "modelo_usado": model_name}
 
 @app.post("/whatsapp")
 async def webhook(request: Request):
     try:
-        # Pega a mensagem do WhatsApp
         form_data = await request.form()
         pergunta = form_data.get("Body", "")
         
-        # Filtro de estoque
         info_estoque = ""
         for loja, itens in estoques.items():
             for produto, qtd in itens.items():
                 if produto in pergunta.lower():
                     info_estoque += f"{loja}: {qtd} unidades. "
 
-        # IA responde
-        prompt = f"Você é o atendente da farmácia. Responda curto: {pergunta}. Estoque: {info_estoque}"
+        prompt = f"Você é atendente da farmácia. Responda curto: {pergunta}. Estoque: {info_estoque}"
         response = model.generate_content(prompt)
         
-        # Prepara a volta para o Zap
         twiml = MessagingResponse()
         twiml.message(response.text)
         return Response(content=str(twiml), media_type="application/xml")
         
     except Exception as e:
         twiml = MessagingResponse()
-        twiml.message(f"Quase lá! Erro: {str(e)}")
+        twiml.message(f"DEBUG: Modelo {model_name} - Erro: {str(e)}")
         return Response(content=str(twiml), media_type="application/xml")
