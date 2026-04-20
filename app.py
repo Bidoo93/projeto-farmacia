@@ -3,12 +3,9 @@ import google.generativeai as genai
 from fastapi import FastAPI, Request, Response
 from twilio.twiml.messaging_response import MessagingResponse
 
-# Configuração da API
-api_key = os.environ.get("GEMINI_API_KEY")
-genai.configure(api_key=api_key)
-
-# Usamos o modelo 1.5-flash com o nome completo para não ter erro
-model = genai.GenerativeModel('models/gemini-1.5-flash')
+# Configuração da API - Usando o método mais moderno
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 app = FastAPI()
 
@@ -20,34 +17,32 @@ estoques = {
 
 @app.get("/")
 def home():
-    return {"status": "Sistema Online", "local": "Esteio"}
+    return {"status": "Online", "msg": "Bora descansar Rodrigo!"}
 
 @app.post("/whatsapp")
 async def webhook(request: Request):
     try:
-        # Twilio envia como formulário
+        # Pega a mensagem do WhatsApp
         form_data = await request.form()
         pergunta = form_data.get("Body", "")
         
-        # Busca no estoque
+        # Filtro de estoque
         info_estoque = ""
         for loja, itens in estoques.items():
             for produto, qtd in itens.items():
                 if produto in pergunta.lower():
                     info_estoque += f"{loja}: {qtd} unidades. "
 
-        prompt = f"Você é o atendente da farmácia do Rodrigo. Responda de forma curta: {pergunta}. Estoque: {info_estoque}"
-        
-        # Chamada da IA
+        # IA responde
+        prompt = f"Você é o atendente da farmácia. Responda curto: {pergunta}. Estoque: {info_estoque}"
         response = model.generate_content(prompt)
-        texto_ia = response.text
-
-        # Resposta para o WhatsApp
+        
+        # Prepara a volta para o Zap
         twiml = MessagingResponse()
-        twiml.message(texto_ia)
+        twiml.message(response.text)
         return Response(content=str(twiml), media_type="application/xml")
         
     except Exception as e:
         twiml = MessagingResponse()
-        twiml.message(f"Erro: {str(e)}")
+        twiml.message(f"Quase lá! Erro: {str(e)}")
         return Response(content=str(twiml), media_type="application/xml")
