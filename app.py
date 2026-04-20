@@ -7,19 +7,9 @@ from twilio.twiml.messaging_response import MessagingResponse
 api_key = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
 
-# FUNÇÃO PARA ACHAR O MODELO CERTO AUTOMATICAMENTE
-def get_available_model():
-    try:
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                return m.name
-    except:
-        return 'gemini-1.5-flash' # fallback caso a lista falhe
-
-# Seleciona o modelo que o seu sistema permitir
-model_name = get_available_model()
+# MUDANÇA AQUI: Forçamos o modelo raiz que funciona em versões antigas
+model_name = 'models/gemini-1.0-pro-001'
 model = genai.GenerativeModel(model_name)
-
 app = FastAPI()
 
 estoques = {
